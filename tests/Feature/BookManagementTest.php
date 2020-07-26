@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Book;
+use App\Author;
 
 class BookManagementTest extends TestCase
 {
@@ -12,79 +13,89 @@ class BookManagementTest extends TestCase
     /**
      * @test
      */
-    public function a_book_can_be_added_to_library()
-    {
+   /** @test */
+   public function a_book_can_be_added_to_the_library()
+   {
+       $response = $this->post('/books', $this->data());
 
-        $this->withoutExceptionHandling();
+       $book = Book::first();
 
-        $response = $this->post('/books',
-        ['title'=>"Book Title",
-        'author'=>"Paulo Cohelo",
-        ]);
+       $this->assertCount(1, Book::all());
+       $response->assertRedirect($book->path());
+   }
 
-        $book=Book::first();
-        $this->assertCount(1, Book::all());
-        $response->assertRedirect($book->path());
-    }
+   /** @test */
+   public function a_title_is_required()
+   {
+       $response = $this->post('/books', [
+           'title' => '',
+           'author' => 'Victor',
+       ]);
 
-    /**
-     * @test
-     */
-    public function a_title_is_required()
-    {
-        $response = $this->post('/books',
-        ['title'=>"",
-        'author'=>"Paulo Cohelo",
-        ]);
+       $response->assertSessionHasErrors('title');
+   }
 
-        $response->assertSessionHasErrors('title');
-    }
-    /**
-     * @test
-     */
-    public function a_author_is_required()
-    {
-        $response = $this->post('/books',
-        ['title'=>"Title",
-        'author'=>"",
-        ]);
+   /** @test */
+   public function a_author_is_required()
+   {
+       $response = $this->post('/books', array_merge($this->data(), ['author_id' => '']));
 
-        $response->assertSessionHasErrors('author');
-    }
-    /**
-     * @test
-     */
-    public function a_book_can_be_updated()
-    {
-        $this->post('/books',[
-            'title'=>"Title",
-            'author'=>"Author",
-        ]);
+       $response->assertSessionHasErrors('author_id');
+   }
 
-        $book=Book::first();
+   /** @test */
+   public function a_book_can_be_updated()
+   {
+       $this->post('/books', $this->data());
 
-        $response =$this->patch($book->path(),[
-            'title'=>'New Title',
-            'author'=>"New Author"
-        ]);
+       $book = Book::first();
 
-        $this->assertEquals('New Title', Book::first()->title);
-        $this->assertEquals('New Author', Book::first()->author);
-        $response->assertRedirect($book->fresh()->path());
-    }
-     /**
-     * @test
-     */
-    public function a_book_can_be_deleted(){
-        $this->post('/books',[
-            'title'=>"Title",
-            'author'=>"Author",
-        ]);
-        $book=Book::first();
+       $response = $this->patch($book->path(), [
+           'title' => 'New Title',
+           'author_id' => 'New Author',
+       ]);
 
-        $response =$this->delete($book->path());
-        $this->assertCount(0,Book::all());
-        $response->assertRedirect('/books');
-    }
+       $this->assertEquals('New Title', Book::first()->title);
+       $this->assertEquals(2, Book::first()->author_id);
+       $response->assertRedirect($book->fresh()->path());
+   }
 
+   /** @test */
+   public function a_book_can_be_deleted()
+   {
+       $this->post('/books', $this->data());
+
+       $book = Book::first();
+       $this->assertCount(1, Book::all());
+
+       $response = $this->delete($book->path());
+
+       $this->assertCount(0, Book::all());
+       $response->assertRedirect('/books');
+   }
+
+   /** @test */
+   public function a_new_author_is_automatically_added()
+   {
+       $this->withoutExceptionHandling();
+
+       $this->post('/books', [
+           'title' => 'Cool Title',
+           'author_id' => 'Victor',
+       ]);
+
+       $book = Book::first();
+       $author = Author::first();
+
+       $this->assertEquals($author->id, $book->author_id);
+       $this->assertCount(1, Author::all());
+   }
+
+   private function data()
+   {
+       return [
+           'title' => 'Cool Book Title',
+           'author_id' => 'Victor',
+       ];
+   }
 }
