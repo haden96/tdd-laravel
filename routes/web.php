@@ -19,7 +19,6 @@ Route::get('/', function () {
 
 Auth::routes();
 
-Route::get('/home', 'HomeController@index')->name('home');
 Route::post('/books','BooksController@store');
 Route::patch('/books/{book}','BooksController@update');
 Route::delete('/books/{book}','BooksController@destroy');
@@ -27,3 +26,6 @@ Route::delete('/books/{book}','BooksController@destroy');
 Route::post('/authors','AuthorController@store');
 Route::patch('/authors/{author}','AuthorController@update');
 Route::delete('/authors/{author}','AuthorController@destroy');
+
+Route::post('/checkout/{book}','CheckoutBookController@store');
+Route::post('/checkin/{book}','CheckinBookController@store');
